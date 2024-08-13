@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader, Dataset, random_split
 import warnings
 import pandas as pd
 from sklearn.metrics import accuracy_score
-# ºöÂÔËùÓĞµÄUserWarning
+# å¿½ç•¥æ‰€æœ‰çš„UserWarning
 warnings.filterwarnings('ignore', category=UserWarning)
 
 class CSVLoader:
@@ -116,7 +116,7 @@ if __name__ == "__main__":
     csv_loader = CSVLoader('/content/eng_dataset.csv')  
     texts, labels = csv_loader.get_texts_and_labels()
     
-    # ÇĞ·ÖÊı¾İ¼¯
+    # åˆ‡åˆ†æ•°æ®é›†
     tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
     dataset = DistillationDataset(texts, labels, tokenizer)
     total_size = len(dataset)
@@ -124,48 +124,47 @@ if __name__ == "__main__":
     test_size = total_size - train_size
     train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
 
-    # ¼ÓÔØÄ£ĞÍ
+    # åŠ è½½æ¨¡å‹
     teacher_model = BertForSequenceClassification.from_pretrained('bert-large-uncased', num_labels=4)
     student_model = BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=4)
 
-    # ´òÓ¡Ä£ĞÍ²ÎÊıÁ¿
+    # æ‰“å°æ¨¡å‹å‚æ•°é‡
     print_model_parameters(teacher_model, "Teacher Model")
     print_model_parameters(student_model, "Student Model")
 
-    # ¶¨Òå tokenizer ºÍ optimizer
+    # å®šä¹‰ tokenizer å’Œ optimizer
     optimizer = AdamW(student_model.parameters(), lr=5e-5)
 
-    # ¶¨Òåµ÷¶ÈÆ÷
+    # å®šä¹‰è°ƒåº¦å™¨
     train_dataloader = DataLoader(train_dataset, batch_size=2, shuffle=True)
     test_dataloader = DataLoader(test_dataset, batch_size=2, shuffle=False)
 
-    # ×Ü¹²ÑµÁ·²½Öè
+    # æ€»å…±è®­ç»ƒæ­¥éª¤
     total_steps = len(train_dataloader) * 3
     scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=0, num_training_steps=total_steps)
 
-    # ³õÊ¼»¯ÕôÁóÄ£ĞÍ
+    # åˆå§‹åŒ–è’¸é¦æ¨¡å‹
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     distillation_model = DistillationModel(teacher_model, student_model).to(device)
 
-    # ÑµÁ·Ä£ĞÍ
+    # è®­ç»ƒæ¨¡å‹
     train_distillation_model(train_dataloader, distillation_model, optimizer, scheduler, device)
 
-    # ±£´æÑ§ÉúÄ£ĞÍµÄÈ¨ÖØ
+    # ä¿å­˜å­¦ç”Ÿæ¨¡å‹çš„æƒé‡
     torch.save(student_model.state_dict(), "student_model.pth")
 
-    # ¼ÓÔØÑ§ÉúÄ£ĞÍµÄÈ¨ÖØ
+    # åŠ è½½å­¦ç”Ÿæ¨¡å‹çš„æƒé‡
     student_model = BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=4)
     student_model.load_state_dict(torch.load("student_model.pth"))
-    student_model.eval()  # ÇĞ»»µ½ÆÀ¹ÀÄ£Ê½
+    student_model.eval()  # åˆ‡æ¢åˆ°è¯„ä¼°æ¨¡å¼
 
-    # ¼ÆËãÑµÁ·¼¯ºÍ²âÊÔ¼¯µÄ×¼È·ÂÊ
+    # è®¡ç®—å‡†ç¡®ç‡ï¼Œè’¸é¦å‰åè¿›è¡Œå¯¹æ¯”
     teacher_model.eval()
-    train_accuracy_teacher = evaluate_model(train_dataloader, teacher_model, device)
+    
     test_accuracy_teacher = evaluate_model(test_dataloader, teacher_model, device)
-    train_accuracy_student = evaluate_model(train_dataloader, student_model, device)
+    
     test_accuracy_student = evaluate_model(test_dataloader, student_model, device)
 
-    print(f"Teacher Model - Training Accuracy: {train_accuracy_teacher:.4f}")
+
     print(f"Teacher Model - Testing Accuracy: {test_accuracy_teacher:.4f}")
-    print(f"Student Model - Training Accuracy: {train_accuracy_student:.4f}")
     print(f"Student Model - Testing Accuracy: {test_accuracy_student:.4f}")
